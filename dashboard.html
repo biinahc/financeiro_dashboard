@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Analytics Dashboard - Qualidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0a0a0a',
+                        cardBg: '#171717',
+                        primary: '#00D15B',
+                        secondary: '#a3a3a3',
+                        accent: '#22c55e'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="min-h-screen p-6">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+
+        <header
+            class="flex flex-col md:flex-row justify-between items-center glass-panel p-6 rounded-2xl shadow-lg border-b-2 border-primary">
+            <div class="flex items-center gap-4">
+                <img id="logoHeader" alt="Mottu Logo" class="h-12 object-contain hidden md:block">
+                <div>
+                    <h1 class="text-3xl font-bold text-white flex items-center">
+                        Dashboard da Qualidade
+                    </h1>
+                    <p class="text-secondary mt-1 text-sm font-medium">Análise de Importados e Retrabalho</p>
+                    <p class="text-secondary mt-1 text-[10px] font-medium">Controle Anderson Eduardo</p>
+
+                </div>
+            </div>
+
+            <div class="mt-4 md:mt-0 flex items-center gap-4">
+                <button id="btnExportPDF"
+                    class="hidden px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white rounded-lg cursor-pointer transition flex items-center shadow-lg shadow-black">
+                    <i class="fa-solid fa-file-pdf text-red-400 mr-2"></i> Gerar Report
+                </button>
+                <label
+                    class="px-4 py-2 bg-primary hover:bg-green-600 text-black font-semibold rounded-lg cursor-pointer transition flex items-center shadow-lg shadow-green-500/20">
+                    <span>📤</span> <span class="ml-2">Carregar Dados</span>
+                    <input type="file" id="fileUpload" class="hidden" accept=".xlsx, .xls, .csv, .xlsm">
+                </label>
+            </div>
+        </header>
+
+
+        <div id="spreadsheetTitleContainer" class="hidden">
+            <div class="glass-panel p-4 rounded-xl border border-primary/30 flex items-center gap-3">
+                <i class="fa-solid fa-file-excel text-primary text-xl"></i>
+                <div>
+                    <p class="text-[10px] text-primary uppercase font-bold tracking-wider">Planilha em Processamento</p>
+                    <h2 id="spreadsheetTitle" class="text-white font-semibold">Nome do arquivo.xlsx</h2>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboardContent" class="space-y-6">
+
+            <section class="glass-panel p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-secondary mb-2">Mês</label>
+                    <select id="monthFilter"
+                        class="w-full bg-cardBg border border-gray-600 text-white rounded-lg p-2.5 focus:ring-primary focus:border-primary">
+                        <option value="ALL">Todos os Meses</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-secondary mb-2">Top Itens Critícos</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" id="topNSlider" min="5" max="20" step="5" value="10"
+                            class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                        <span id="topNValue" class="text-lg font-bold text-accent">10</span>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2 lg:col-span-4 mt-2 border-t border-gray-700/50 pt-4">
+                    <label class="block text-sm font-medium text-secondary mb-2">Origem do Defeito</label>
+                    <div id="originFiltersContainer" class="flex flex-wrap gap-4">
+
+                    </div>
+                </div>
+
+                <div id="ignoredItemsContainerWrapper" class="md:col-span-2 lg:col-span-4 hidden">
+                    <label class="block text-sm font-medium text-red-400 mb-2"><i class="fa-solid fa-eye-slash"></i>
+                        Itens
+                        Ocultados do Dashboard</label>
+                    <div id="ignoredItemsContainer" class="flex flex-wrap gap-2">
+
+                    </div>
+                </div>
+            </section>
+
+
+            <section id="kpiSection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-blue-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                <span id="kpiTotalLabel">Total</span>
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext">Quantidade total de peças</span>
+                                </span>
+                            </p>
+                            <h3 class="text-3xl font-bold text-white mt-1" id="kpiTotal">0</h3>
+                            <p class="text-xs mt-1" id="kpiTotalVar"></p>
+                        </div>
+                        <div class="p-3 bg-blue-500/20 rounded-xl text-blue-400">
+                            <i class="fa-solid fa-tools text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="kpiRecoveryCard"
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-green-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                % Aproveitamento
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext" id="kpiRecoveryTooltip">Diferença de um mês para o
+                                        outro.</span>
+                                </span>
+                            </p>
+                            <h3 class="text-3xl font-bold text-white mt-1" id="kpiRecovery">0%</h3>
+                            <p class="text-xs mt-1" id="kpiRecoveryVar"></p>
+                        </div>
+                        <div class="p-3 bg-green-500/20 rounded-xl text-green-400">
+                            <i class="fa-solid fa-check-circle text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="kpiReturnedCard"
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-red-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                Retorno
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext">Quantidade de peças perdidas que não puderam ser
+                                        recuperadas.</span>
+                                </span>
+                            </p>
+                            <h3 class="text-3xl font-bold text-white mt-1" id="kpiReturned">0</h3>
+                            <p class="text-xs mt-1" id="kpiReturnedVar"></p>
+                        </div>
+                        <div class="p-3 bg-red-500/20 rounded-xl text-red-500">
+                            <i class="fa-solid fa-trash text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-orange-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="overflow-hidden">
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                Principal Defeito
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext">O defeito com maior número de ocorrências. Define a
+                                        prioridade número 1 para ações de melhoria.</span>
+                                </span>
+                            </p>
+                            <h3 class="text-2xl font-bold text-white mt-2 truncate" id="kpiMainDefect" title="-">-</h3>
+                            <p class="text-xs mt-1" id="kpiMainDefectVar"></p>
+                        </div>
+                        <div class="p-3 bg-orange-500/20 rounded-xl text-orange-400">
+                            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="kpiTransitCard"
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-purple-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="overflow-hidden">
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                Transit Claims
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext">Total de reclamações de transporte (Importados). Cada
+                                        linha da planilha conta como 1 evento logístico.</span>
+                                </span>
+                            </p>
+                            <h3 class="text-3xl font-bold text-white mt-1 truncate" id="kpiTransit"
+                                title="Transit Claims">0</h3>
+                            <p class="text-xs mt-1" id="kpiTransitVar"></p>
+                        </div>
+                        <div class="p-3 bg-purple-500/20 rounded-xl text-purple-400">
+                            <i class="fa-solid fa-truck-fast text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="kpiRecoveredValueCard"
+                    class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500 hover:scale-[1.02] transition-transform text-center md:text-left shadow-lg hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-secondary font-medium flex items-center">
+                                Total Recuperado (R$)
+                                <span class="tooltip">
+                                    <i class="fa-regular fa-circle-question text-gray-500 text-xs"></i>
+                                    <span class="tooltiptext">Valor total recuperado para a empresa baseado no R$ GERAL.</span>
+                                </span>
+                            </p>
+                            <h3 class="text-3xl font-bold text-white mt-1" id="kpiRecoveredValue">R$ 0,00</h3>
+                            <p class="text-xs mt-1" id="kpiRecoveredValueVar"></p>
+                        </div>
+                        <div class="p-3 bg-yellow-500/20 rounded-xl text-yellow-500">
+                            <i class="fa-solid fa-hand-holding-dollar text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 glass-panel p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center">
+                        Ranking de Defeitos por Peça
+                        <span class="tooltip">
+                            <i class="fa-regular fa-circle-question text-gray-500 text-sm ml-2"></i>
+                            <span class="tooltiptext">Maiores defeitos</span>
+                        </span>
+                    </h3>
+                    <div class="relative h-72">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center">
+                        Distribuição por Origem
+                        <span class="tooltip">
+                            <i class="fa-regular fa-circle-question text-gray-500 text-sm ml-2"></i>
+                            <span class="tooltiptext">Setores com maior índice de defeitos.</span>
+                        </span>
+                    </h3>
+                    <div class="relative h-72 flex justify-center">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 mb-6">
+                <div class="glass-panel p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center">
+                        Análise de Causa Raiz (Defeitos)
+                        <span class="tooltip">
+                            <i class="fa-regular fa-circle-question text-gray-500 text-sm ml-2"></i>
+                            <span class="tooltiptext">Gráfico de Pareto. Exibe os defeitos com maior volumetria,
+                                indicando a prioridade para análise de causa raiz.</span>
+                        </span>
+                    </h3>
+                    <div class="relative h-72 flex justify-center">
+                        <canvas id="paretoChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-200 flex items-center">
+                        Tendência Temporal Mensal
+                        <span class="tooltip">
+                            <i class="fa-regular fa-circle-question text-gray-500 text-sm ml-2"></i>
+                            <span class="tooltiptext">Evolução de falhas ao longo do tempo. Permite visualizar se as
+                                ações corretivas estão reduzindo o retrabalho mês a mês.</span>
+                        </span>
+                    </h3>
+                    <div class="relative h-72 flex justify-center">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+
+            <section id="tableSection" class="glass-panel rounded-2xl shadow-lg overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h3 class="text-lg font-semibold text-gray-200 flex items-center">
+                        Detalhamento de Ocorrências
+                        <span class="tooltip">
+                            <i class="fa-regular fa-circle-question text-gray-500 text-sm ml-2"></i>
+                            <span class="tooltiptext">Lista completa de dados. Use a busca para filtrar ou o ícone de
+                                olho para remover itens específicos dos cálculos.</span>
+                        </span>
+                    </h3>
+                    <div class="relative w-full sm:w-64">
+                        <input type="text" id="searchTable" placeholder="Buscar peça ou defeito..."
+                            class="w-full bg-cardBg border border-gray-600 text-white rounded-lg pl-10 pr-4 py-2 focus:ring-primary focus:border-primary">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-300">
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-800/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Código</th>
+                                <th scope="col" class="px-6 py-3">Nome da Peça</th>
+                                <th scope="col" class="px-6 py-3">Defeito / Problema</th>
+                                <th scope="col" class="px-6 py-3">Origem</th>
+                                <th scope="col" class="px-6 py-3 text-right">Quantidade</th>
+                                <th scope="col" class="px-6 py-3">Mês</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-700/50">
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                    Importe uma planilha para visualizar os dados.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+            <footer
+                class="mt-10 pt-10 pb-6 border-t border-gray-800 flex flex-col items-center justify-center text-gray-500 text-sm">
+                <div class="flex flex-col items-center gap-3 mb-4">
+                    <img id="logoFooter" alt="Mottu"
+                        class="w-40 h-auto opacity-30 grayscale hover:grayscale-0 transition duration-300">
+                    <span class="text-center">&copy;
+                        <script>document.write(new Date().getFullYear())</script> Qualidade Mottu
+                    </span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa-solid fa-code text-primary mr-2"></i> Desenvolvido por
+                    <span class="font-bold text-gray-200 ml-1">Sabrina Caldas</span>
+                </div>
+            </footer>
+
+        </div>
+
+        <script src="js/logos.js"></script>
+        <script src="js/app.js"></script>
+</body>
+
+</html>
