@@ -86,10 +86,3 @@ Desenvolvido por Sabrina Caldas
 💼 Estagiária de Desenvolvimento de Sistemas
 🚀 Apaixonada por tecnologia e automação de processos
 
-Se quiser deixar nível recrutador top, posso te ajudar com:
-
-Nome mais chamativo pro projeto
-
-Prints estratégicos (o que mostrar)
-
-Organização do repositório (estrutura profissional)
