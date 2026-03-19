@@ -45,20 +45,13 @@ CSS3
 JavaScript (Vanilla)
 
 📸 Demonstração
-
-(Adicione aqui prints do sistema rodando — isso valoriza MUITO seu GitHub)
-
+📊 Dashboard em funcionamento
+<p align="center"> <img src="assets/financeiro1.png" width="700"> </p> <p align="center"> <img src="assets/financeiro2.png" width="700"> </p> <p align="center"> <img src="assets/financeiro3.png" width="700"> </p> <p align="center"> <img src="assets/financeiro4.png" width="700"> </p> <p align="center"> <img src="assets/financeiro5.png" width="700"> </p> <p align="center"> <img src="assets/financeiro6.png" width="700"> </p>
 ▶️ Como Executar
-
-Clone o repositório:
-
 git clone https://github.com/seu-usuario/seu-repositorio.git
-
-Acesse a pasta do projeto:
-
 cd seu-repositorio
 
-Abra o arquivo index.html no navegador
+Abra o arquivo index.html no navegador.
 
 📈 Impacto do Projeto
 
@@ -82,7 +75,6 @@ Filtros avançados de análise
 
 👩‍💻 Autora
 
-Desenvolvido por Sabrina Caldas
+Sabrina Caldas
 💼 Estagiária de Desenvolvimento de Sistemas
-🚀 Apaixonada por tecnologia e automação de processos
-
+🚀 Focada em automação e soluções práticas com tecnologia
