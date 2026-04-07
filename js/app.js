@@ -9,13 +9,17 @@ const colAliases = {
     defeito: ['problema', 'defeito', 'falha', 'motivo', 'nqm', 'não conformidade', 'descrição defeito', 'descricao defeito'],
     origem: ['origem', 'fornecedor', 'processo', 'causa'],
     codigo: ['código', 'codigo', 'cod', 'pn', 'part number', 'cód'],
-    mes: ['mês', 'mes', 'data', 'periodo', 'período'],
+    mes: ['mês', 'mes', 'periodo', 'período'],
+    dataExact: ['dia', 'data', 'criado em', 'data de criação'],
     retornou: ['retornou', 'descartadas', 'descarte', 'retorno'],
     rsUnitario: ['r$ unitário', 'unitário', 'valor unitario', 'r$ unitario'],
     rsGeral: ['r$ geral', 'geral', 'valor total', 'valor geral', 'r$ geral']
 };
 const fileUpload = document.getElementById('fileUpload');
 const monthFilter = document.getElementById('monthFilter');
+const weekFilterContainer = document.getElementById('weekFilterContainer');
+const startDateInput = document.getElementById('startDate');
+const endDateInput = document.getElementById('endDate');
 const topNSlider = document.getElementById('topNSlider');
 const originFiltersContainer = document.getElementById('originFiltersContainer');
 const searchTable = document.getElementById('searchTable');
@@ -26,7 +30,16 @@ const spreadsheetTitleContainer = document.getElementById('spreadsheetTitleConta
 const spreadsheetTitle = document.getElementById('spreadsheetTitle');
 const kpiTotalLabel = document.getElementById('kpiTotalLabel');
 fileUpload.addEventListener('change', handleFileUpload);
-monthFilter.addEventListener('change', applyFilters);
+monthFilter.addEventListener('change', () => {
+    if (monthFilter.value === 'WEEK') {
+        weekFilterContainer.classList.remove('hidden');
+    } else {
+        weekFilterContainer.classList.add('hidden');
+    }
+    applyFilters();
+});
+startDateInput.addEventListener('change', applyFilters);
+endDateInput.addEventListener('change', applyFilters);
 topNSlider.addEventListener('input', (e) => {
     topNValue.textContent = e.target.value;
     applyFilters();
@@ -51,14 +64,49 @@ function processRowData(row, colMap) {
     let origem = (row[colMap.origem] || 'Não Informado').toString().trim();
     if (origem.toLowerCase() === 'forn') origem = 'Fornecedor';
     else if (origem.toLowerCase() === 'proc') origem = 'Processo';
+    
     let mesStr = 'Geral';
+    let rowDate = null;
+    
+    if (colMap.dataExact && row[colMap.dataExact]) {
+        const rawDataEx = row[colMap.dataExact];
+        if (typeof rawDataEx === 'number') {
+            let utcMs = Math.round((rawDataEx - 25569) * 86400 * 1000);
+            let dUtc = new Date(utcMs);
+            rowDate = new Date(dUtc.getUTCFullYear(), dUtc.getUTCMonth(), dUtc.getUTCDate());
+        } else {
+            let str = String(rawDataEx).trim();
+            let parts = str.split('/');
+            if (parts.length === 3) {
+                let y = parseInt(parts[2], 10);
+                if (y < 100) y += 2000;
+                rowDate = new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            } else {
+                let tDate = new Date(str);
+                if (!isNaN(tDate.getTime())) rowDate = tDate;
+            }
+        }
+    }
+
     if (colMap.mes && row[colMap.mes]) {
         const rawMes = row[colMap.mes];
         if (typeof rawMes === 'number') {
-            let date = new Date(Math.round((rawMes - 25569) * 86400 * 1000));
-            mesStr = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+            let utcMs = Math.round((rawMes - 25569) * 86400 * 1000);
+            let dUtc = new Date(utcMs);
+            let tempDate = new Date(dUtc.getUTCFullYear(), dUtc.getUTCMonth(), dUtc.getUTCDate());
+            if (!rowDate) rowDate = tempDate;
+            mesStr = tempDate.toLocaleString('pt-BR', { month: 'long' });
         } else {
             mesStr = String(rawMes).trim();
+            // Fallback parsing just in case month string is a date
+            if (!rowDate) {
+                let parts = mesStr.split('/');
+                if (parts.length === 3) {
+                    let y = parseInt(parts[2], 10);
+                    if (y < 100) y += 2000;
+                    rowDate = new Date(y, parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+                }
+            }
         }
     }
     let ret = row[colMap.retornou];
@@ -72,7 +120,8 @@ function processRowData(row, colMap) {
         rsUnitario: Number(row[colMap.rsUnitario]) || 0,
         rsGeral: Number(row[colMap.rsGeral]) || 0,
         origem: origem,
-        mes: mesStr
+        mes: mesStr,
+        dataValue: rowDate
     };
 }
 async function handleFileUpload(e) {
@@ -109,6 +158,7 @@ async function handleFileUpload(e) {
                     origem: findColumnKey(row, colAliases.origem),
                     codigo: findColumnKey(row, colAliases.codigo),
                     mes: findColumnKey(row, colAliases.mes),
+                    dataExact: findColumnKey(row, colAliases.dataExact),
                     retornou: findColumnKey(row, colAliases.retornou),
                     rsUnitario: findColumnKey(row, colAliases.rsUnitario),
                     rsGeral: findColumnKey(row, colAliases.rsGeral)
@@ -119,7 +169,7 @@ async function handleFileUpload(e) {
                 if (colMap.defeito) matches++;
                 if (colMap.origem) matches++;
                 if (colMap.codigo) matches++;
-                if (colMap.mes) matches++;
+                if (colMap.mes || colMap.dataExact) matches++;
                 if (matches > maxMatches) {
                     maxMatches = matches;
                     headerRowIndex = i;
@@ -164,6 +214,8 @@ async function handleFileUpload(e) {
                             parsed.mes = sheetName.toUpperCase();
                         }
                     }
+                } else {
+                    parsed.mes = parsed.mes.toUpperCase();
                 }
                 if (parsed.quantidade > 0) {
                     rawData.push(parsed);
@@ -220,13 +272,47 @@ function updateMonthFilter(months) {
         opt.textContent = m.charAt(0).toUpperCase() + m.slice(1);
         monthFilter.appendChild(opt);
     });
+    
+    if (isImportadosFile) {
+        const optWeek = document.createElement('option');
+        optWeek.value = 'WEEK';
+        optWeek.textContent = 'Por Semana / Período';
+        monthFilter.appendChild(optWeek);
+    }
+
+    if (monthFilter.value === 'WEEK') {
+        weekFilterContainer.classList.remove('hidden');
+    } else {
+        weekFilterContainer.classList.add('hidden');
+    }
 }
 function applyFilters() {
     const selMonth = monthFilter.value;
     const topN = parseInt(topNSlider.value);
     const selectedOrigins = getSelectedOrigins();
+    
+    let startD = startDateInput.value ? new Date(startDateInput.value + 'T00:00:00') : null;
+    let endD = endDateInput.value ? new Date(endDateInput.value + 'T23:59:59') : null;
+
     filteredData = rawData.filter(d => {
-        const matchMonth = selMonth === 'ALL' || d.mes === selMonth;
+        let matchMonth = false;
+        if (selMonth === 'ALL') {
+            matchMonth = true;
+        } else if (selMonth === 'WEEK') {
+            if (!startD && !endD) {
+                matchMonth = true;
+            } else if (d.dataValue) {
+                let dTime = d.dataValue.getTime();
+                let minTime = startD ? startD.getTime() : -Infinity;
+                let maxTime = endD ? endD.getTime() : Infinity;
+                matchMonth = dTime >= minTime && dTime <= maxTime;
+            } else {
+                matchMonth = false;
+            }
+        } else {
+            matchMonth = (d.mes || '').toUpperCase() === selMonth.toUpperCase();
+        }
+        
         const matchOrigin = selectedOrigins.includes(d.origem);
         const isExcluded = ignoredCodes.has(`${d.codigo}:::${d.defeito}`);
         return matchMonth && matchOrigin && !isExcluded;
@@ -314,7 +400,7 @@ function updateKPIs() {
     const varRecoveryEl = document.getElementById('kpiRecoveryVar');
     const varReturnedEl = document.getElementById('kpiReturnedVar');
 
-    if (selMonth === 'ALL') {
+    if (selMonth === 'ALL' || selMonth === 'WEEK') {
         [varTotalEl, varTransitEl, varMainDefectEl, varRecoveryEl, varReturnedEl].forEach(el => { if (el) el.innerHTML = '' });
     } else {
         const monthOrder = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];

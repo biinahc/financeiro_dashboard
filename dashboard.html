@@ -78,23 +78,34 @@
 
             <section class="glass-panel p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                 <div>
-                    <label class="block text-sm font-medium text-secondary mb-2">Mês</label>
+                    <label class="block text-sm font-medium text-secondary mb-2">Período / Mês</label>
                     <select id="monthFilter"
                         class="w-full bg-cardBg border border-gray-600 text-white rounded-lg p-2.5 focus:ring-primary focus:border-primary">
                         <option value="ALL">Todos os Meses</option>
                     </select>
                 </div>
 
-                <div>
+                <div id="weekFilterContainer" class="hidden md:col-span-2 flex items-end gap-4 w-full">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-secondary mb-2">Data Inicial</label>
+                        <input type="date" id="startDate" class="w-full bg-cardBg border border-gray-600 text-white text-sm rounded-lg p-2.5 focus:ring-primary focus:border-primary" style="height: 46px;">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-secondary mb-2">Data Final</label>
+                        <input type="date" id="endDate" class="w-full bg-cardBg border border-gray-600 text-white text-sm rounded-lg p-2.5 focus:ring-primary focus:border-primary" style="height: 46px;">
+                    </div>
+                </div>
+
+                <div id="topNContainer">
                     <label class="block text-sm font-medium text-secondary mb-2">Top Itens Critícos</label>
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-4 h-[46px]">
                         <input type="range" id="topNSlider" min="5" max="20" step="5" value="10"
                             class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
                         <span id="topNValue" class="text-lg font-bold text-accent">10</span>
                     </div>
                 </div>
 
-                <div class="md:col-span-2 lg:col-span-4 mt-2 border-t border-gray-700/50 pt-4">
+                <div class="md:col-span-2 lg:col-span-4 mt-2 border-t border-gray-700/50 pt-4" style="grid-column: 1 / -1;">
                     <label class="block text-sm font-medium text-secondary mb-2">Origem do Defeito</label>
                     <div id="originFiltersContainer" class="flex flex-wrap gap-4">
 
