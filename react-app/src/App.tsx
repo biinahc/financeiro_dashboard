@@ -11,7 +11,7 @@ import { Footer } from './components/Footer';
 import { useExcelLoader } from './hooks/useExcelLoader';
 import { applyDataFilters } from './utils/dataFilters';
 import { extractMetrics } from './utils/metricsAggregator';
-import { getRankingChartData, getOriginDoughnutData, getParetoChartData, getTrendChartData } from './utils/chartDataFormatters';
+import { getRankingChartData, getOriginDoughnutData, getTrendChartData } from './utils/chartDataFormatters';
 import type { FilterState } from './types/dashboard';
 
 // Icons
@@ -152,7 +152,6 @@ function App() {
   // Transformar Dados para os Gráficos isoladamente para não sobrecarregar
   const rankingData = useMemo(() => getRankingChartData(filteredData, filterState.topN), [filteredData, filterState.topN]);
   const originData = useMemo(() => getOriginDoughnutData(filteredData), [filteredData]);
-  const paretoData = useMemo(() => getParetoChartData(filteredData, filterState.topN), [filteredData, filterState.topN]);
   const trendData = useMemo(() => getTrendChartData(filteredData), [filteredData]);
 
   // Handlers
@@ -196,7 +195,34 @@ function App() {
         margin: 10,
         filename: `Dashboard_Qualidade_${fileName ? fileName.replace('.xlsx', '') : 'Relatorio'}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          onclone: (clonedDoc: HTMLDocument) => {
+            // Fix html2canvas oklch error by forcing a fallback style
+            const style = clonedDoc.createElement('style');
+            style.textContent = `
+              * {
+                color-interpolation-filters: sRGB !important;
+              }
+              /* Force fallback for any oklch usage to avoid html2canvas crash */
+              :root {
+                --color-primary: #00D15B !important;
+                --color-gray-50: #f9fafb !important;
+                --color-gray-100: #f3f4f6 !important;
+                --color-gray-200: #e5e7eb !important;
+                --color-gray-300: #d1d5db !important;
+                --color-gray-400: #9ca3af !important;
+                --color-gray-500: #6b7280 !important;
+                --color-gray-600: #4b5563 !important;
+                --color-gray-700: #374151 !important;
+                --color-gray-800: #1f2937 !important;
+                --color-gray-900: #111827 !important;
+              }
+            `;
+            clonedDoc.head.appendChild(style);
+          }
+        },
         jsPDF: { unit: 'mm' as const, format: 'a3', orientation: 'landscape' as const }
       };
 
@@ -256,7 +282,6 @@ function App() {
         <ChartsSection 
             rankingData={rankingData}
             originData={originData}
-            paretoData={paretoData}
             trendData={trendData}
         />
 

@@ -55,48 +55,7 @@ export function getOriginDoughnutData(filteredData: ParsedDataRow[]): ChartData<
   };
 }
 
-export function getParetoChartData(filteredData: ParsedDataRow[], topN: number): ChartData<'bar' | 'line'> {
-  const counts: Record<string, number> = {};
-  filteredData.forEach(d => { counts[d.defeito] = (counts[d.defeito] || 0) + d.quantidade; });
-  
-  const sorted = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, topN);
 
-  const labels = sorted.map(i => i[0]);
-  const data = sorted.map(i => i[1]);
-  
-  let cumulative = 0;
-  const totalAmount = data.reduce((acc, v) => acc + v, 0);
-  const paretoLine = data.map(v => {
-    cumulative += v;
-    return totalAmount > 0 ? (cumulative / totalAmount) * 100 : 0;
-  });
-
-  return {
-    labels,
-    datasets: [
-      {
-        type: 'line' as const,
-        label: 'Acurácia Acumulada (%)',
-        data: paretoLine,
-        borderColor: COLORS.orange,
-        backgroundColor: COLORS.orange,
-        borderWidth: 2,
-        yAxisID: 'y1',
-        tension: 0.3,
-      },
-      {
-        type: 'bar' as const,
-        label: 'Frequência do Defeito',
-        data,
-        backgroundColor: COLORS.gray,
-        borderRadius: 4,
-        yAxisID: 'y',
-      }
-    ]
-  };
-}
 
 export function getTrendChartData(filteredData: ParsedDataRow[]): ChartData<'line'> {
   // Simplificado temporal com todos os meses disponíveis passados 

@@ -68,7 +68,9 @@ export function useExcelLoader() {
           }
 
           if (maxMatches < 2 || !bestColMap.quantidade) {
-            console.warn(`Aba "${sheetName}" ignorada por não encontrar colunas chave suficientes.`);
+            if (sheetName.toLowerCase() !== 'codigo') {
+              console.warn(`Aba "${sheetName}" ignorada por não encontrar colunas chave suficientes.`);
+            }
             return;
           }
 
