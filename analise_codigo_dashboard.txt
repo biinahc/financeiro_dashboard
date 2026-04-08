@@ -1,0 +1,75 @@
+# Análise do Código: Dashboard da Qualidade (Importados e Retrabalho)
+
+Este documento foi gerado a partir da análise detalhada dos arquivos `dashboard.html`, `js/app.js`, `css/styles.css` e `README.MD` do seu projeto. Ele serve como documentação descritiva e como insumo para a criação da sua apresentação (slides).
+
+---
+
+## 1. O que o seu código faz? (Visão Geral)
+O projeto é um **Dashboard Dinâmico e Interativo de Qualidade** desenvolvido nativamente (HTML, CSS, JS) para o navegador. Ele substitui um processo anteriormente manual (e baseado em planilhas Excel) de apuração de indicadores de falhas em peças, sejam de retrabalho ou reclamações de trânsito (importados). 
+
+Basicamente, o usuário arrasta/carrega uma planilha bruta no sistema, e o dashboard "mastiga" os dados instantaneamente para gerar estatísticas essenciais, gráficos e uma versão em PDF para prestação de contas em reuniões.
+
+---
+
+## 2. Como funciona tecnicamente (Debaixo do Capô)
+
+O código possui um funcionamento "Client-Side", ou seja, não precisa de servidor back-end ou banco de dados, tudo é processado na máquina do usuário localmente. O fluxo principal está no arquivo `app.js`:
+
+1. **Leitura e Normalização (Upload de Excel):** 
+   - Utiliza a biblioteca `SheetJS (xlsx)` para ler os arquivos excel. 
+   - Uma lógica robusta de identificação de colunas (`findColumnKey` e `colAliases`) busca por sinônimos das colunas (Ex: "quantidade", "qtde", "total") para garantir que a planilha será lida corretamente, mesmo se alguém da operação mudar levemente o nome do cabeçalho.
+   - O código lê diferentes abas e extrai dados relevantes descartando totais vazios ou irrelevantes.
+
+2. **Processamento e Filtragem de Dados (`applyFilters`):**
+   - Os dados (`rawData`) ficam na memória e são repassados para uma lista de filtros (`filteredData`).
+   - Há validação de datas e meses (mesmo meses declarados em abas do excel).
+   - Filtros instantâneos operam baseados em:
+     * **Mês e Período (Intervalo de datas)**
+     * **Origem do erro (Fornecedor, Processo, etc.)**
+     * **Filtro de exclusão visual** (o usuário tem um botão com um ícone de "olho" na tabela onde pode esconder uma anomalia específica do cálculo).
+
+3. **Geração de Gráficos e KPIs (Interface e TailwindCSS / Chart.js):**
+   - A interface utiliza a biblioteca Tailwind CSS para garantir um layout moderno, responsivo com aspecto de visual estilo 'glassmorphism' (vidro fosco/translúcido via `styles.css`).
+   - **4 Gráficos (`renderCharts`)**:
+     * *Ranking de Peças:* Gráfico de Barras.
+     * *Distribuição por Origem:* Gráfico de Rosca (Doughnut).
+     * *Pareto (Análise de Causa Raiz):* Identifica os defeitos mais críticos que demandam foco imediato.
+     * *Tendência:* Gráfico de Linha demonstrando a variação histórica ao longo dos meses.
+   - **Cálculo de KPIs:** Determina automaticamente qual é o principal defeito, a porcentagem de peças salvas (aproveitamento), e os valores em R$ Recuperados, com comparação em relação ao mês anterior (Cálculo de variação `% vs ant`).
+
+4. **Exportação de PDF:**
+   - Através da biblioteca `html2pdf.js`, o sistema injeta um CSS temporário para organizar o layout ("escondendo" botões de ação e modais não printáveis) e retira uma "foto" em PDF super otimizada do relatório completo com a tabela final.
+
+---
+
+## 3. Melhorias e Impacto de Negócio (Valor Agregado)
+Durante a apresentação, destaque o que esse projeto resolveu de forma prática:
+
+1. **Automação e Redução de Tempo:** Eliminou as inúmeras horas de tabulação no Excel, fórmulas VLOOKUP/PROCV e montagem de apresentações manuais. A inserção do arquivo reflete todos os indicadores em menos de 1 segundo.
+2. **Independência de Padrões Rígidos:** A inteligência de `Aliases` (apelidos de colunas) no JavaScript permite que planilhas sem "padrão perfeito" não quebrem o sistema.
+3. **Visões Direcionadas à Ação (Pareto e Tendência):** Em vez de olhar apenas números brutos, o líder/coordenador enxerga diretamente *onde* atacar primeiro (ex: Causa Raiz com o maior volume).
+4. **Exportação Facilitada:** Em apenas um clique, o painel vira uma documentação oficial (PDF) padronizada para reuniões de diretoria.
+5. **Autonomia (Módulo de Exclusão):** O botão de ignorar/retornar item permite simular cenários nas reuniões ("E se tirarmos essa falha absurda pontual da conta?").
+
+---
+
+## 4. Prompt para Gerar a Apresentação
+Você pode copiar o texto abaixo e colar em um chat (ChatGPT, Gemini) para que ele crie o roteiro da sua apresentação do PowerPoint/Google Slides:
+
+***
+
+**[Copie a partir daqui para o ChatGPT/Gemini]**
+
+Atue como um especialista em apresentações corporativas. Eu sou Sabrina Caldas, estagiária de desenvolvimento. Eu criei um projeto chamado "Dashboard da Qualidade" que automatiza a leitura de planilhas de problemas e retrabalhos usando HTML, JS (Chart.js e SheetJS) e Tailwind CSS. 
+
+Use o resumo técnico e de negócio abaixo para estruturar uma apresentação de 5 a 6 slides para mim. Para cada slide, me dê o Título, o texto em tópicos (ballets) que deve ir no slide, e uma "Dica do que falar na hora" (Script/Roteiro de fala) focado no impacto de negócio e na redução do trabalho manual.
+
+[RESUMO DO PROJETO]:
+- Sistema 100% web flexível, carrega Excel via JS sem precisar de banco de dados e identifica colunas automaticamente mesmo se estiverem sem padrão exato.
+- Gera KPIs instantâneos de taxa de salvamento, R$ recuperados e alertas baseados no mês anterior.
+- Gráficos de Pareto integrados para descobrir a Causa Raiz prioritária.
+- Função de exportação para Relatório PDF com 1 clique para reuniões executivas.
+- Impacto: Confiabilidade da informação, eliminação de formulários passados por e-mail e tabulação, apoia as tomadas de decisão logísticas e de qualidade em tempo real.
+
+Por favor, elabore meus slides.
+**[Fim da cópia]**
