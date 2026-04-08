@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import html2pdf from 'html2pdf.js';
 import { Header } from './components/Header';
 import { SpreadsheetTitleCard } from './components/SpreadsheetTitleCard';
 import { FilterPanel } from './components/FilterPanel';
@@ -10,6 +11,7 @@ import { Footer } from './components/Footer';
 import { useExcelLoader } from './hooks/useExcelLoader';
 import { applyDataFilters } from './utils/dataFilters';
 import { extractMetrics } from './utils/metricsAggregator';
+import { getRankingChartData, getOriginDoughnutData, getParetoChartData, getTrendChartData } from './utils/chartDataFormatters';
 import type { FilterState } from './types/dashboard';
 
 // Icons
@@ -17,10 +19,12 @@ import { Wrench, CheckCircle, Trash2, TriangleAlert, Truck, HandCoins } from 'lu
 
 function App() {
   const { loadFile, rawData, isImportadosFile, availableOrigins, availableMonths, isLoading } = useExcelLoader();
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   // Estados
   const [fileName, setFileName] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   
   const [filterState, setFilterState] = useState<FilterState>({
     month: 'ALL',
@@ -145,6 +149,11 @@ function App() {
     return arr;
   }, [metricsData, isImportadosFile]);
 
+  // Transformar Dados para os Gráficos isoladamente para não sobrecarregar
+  const rankingData = useMemo(() => getRankingChartData(filteredData, filterState.topN), [filteredData, filterState.topN]);
+  const originData = useMemo(() => getOriginDoughnutData(filteredData), [filteredData]);
+  const paretoData = useMemo(() => getParetoChartData(filteredData, filterState.topN), [filteredData, filterState.topN]);
+  const trendData = useMemo(() => getTrendChartData(filteredData), [filteredData]);
 
   // Handlers
   const handleFileUpload = (file: File) => {
@@ -178,6 +187,29 @@ function App() {
     });
   };
 
+  const handleExportPDF = () => {
+    if (!dashboardRef.current) return;
+    setIsExporting(true);
+
+    setTimeout(() => {
+      const opt = {
+        margin: 10,
+        filename: `Dashboard_Qualidade_${fileName ? fileName.replace('.xlsx', '') : 'Relatorio'}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm' as const, format: 'a3', orientation: 'landscape' as const }
+      };
+
+      html2pdf()
+        .set(opt)
+        .from(dashboardRef.current!)
+        .save()
+        .then(() => {
+          setIsExporting(false);
+        });
+    }, 300); // tempo pro react re-renderizar tabela sem overflow
+  };
+
   const ignoredList = Array.from(filterState.ignoredItems).map(key => {
     const parts = key.split(':::');
     return { key, label: `${parts[0]} - ${parts[1]}` };
@@ -185,12 +217,12 @@ function App() {
 
   return (
     <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-6" id="dashboardContent">
+      <div className="max-w-7xl mx-auto space-y-6" id="dashboardContent" ref={dashboardRef}>
         
         <Header 
           showExportButton={!!fileName}
           onFileUpload={handleFileUpload}
-          onExportPDF={() => alert("Gerar PDF em breve")}
+          onExportPDF={handleExportPDF}
         />
 
         {isLoading && (
@@ -221,13 +253,19 @@ function App() {
 
         <KpiGrid metrics={kpis} />
 
-        <ChartsSection />
+        <ChartsSection 
+            rankingData={rankingData}
+            originData={originData}
+            paretoData={paretoData}
+            trendData={trendData}
+        />
 
         <DataTable 
           data={tableData} 
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onIgnoreItem={handleIgnoreItem}
+          isExporting={isExporting}
         />
 
         <Footer />

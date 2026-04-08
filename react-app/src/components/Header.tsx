@@ -23,7 +23,7 @@ export function Header({ onExportPDF, onFileUpload, showExportButton }: HeaderPr
         </div>
       </div>
 
-      <div className="mt-4 md:mt-0 flex items-center gap-4">
+      <div className="mt-4 md:mt-0 flex items-center gap-4" data-html2pdf-ignore="true">
         {showExportButton && (
           <button
             onClick={onExportPDF}
